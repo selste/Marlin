@@ -788,11 +788,16 @@ void MarlinSettings::postprocess() {
       _FIELD_TEST(hotendPID);
       HOTEND_LOOP() {
         PIDCF_t pidcf = {
-                       PID_PARAM(Kp, e),
-          unscalePID_i(PID_PARAM(Ki, e)),
-          unscalePID_d(PID_PARAM(Kd, e)),
-                       PID_PARAM(Kc, e),
-                       PID_PARAM(Kf, e)
+          #if DISABLED(PIDTEMP)
+            DUMMY_PID_VALUE, DUMMY_PID_VALUE, DUMMY_PID_VALUE,
+            DUMMY_PID_VALUE, DUMMY_PID_VALUE
+          #else
+                         PID_PARAM(Kp, e),
+            unscalePID_i(PID_PARAM(Ki, e)),
+            unscalePID_d(PID_PARAM(Kd, e)),
+                         PID_PARAM(Kc, e),
+                         PID_PARAM(Kf, e)
+          #endif
         };
         EEPROM_WRITE(pidcf);
       }
@@ -2872,10 +2877,12 @@ void MarlinSettings::reset() {
           for (uint8_t py = 0; py < GRID_MAX_POINTS_Y; py++) {
             for (uint8_t px = 0; px < GRID_MAX_POINTS_X; px++) {
               CONFIG_ECHO_START();
-              SERIAL_ECHOPAIR_P(PSTR("  G29 S3 X"), (int)px + 1, SP_Y_STR, (int)py + 1);
+              SERIAL_ECHOPAIR_P(PSTR("  G29 S3 I"), (int)px, PSTR(" J"), (int)py);
               SERIAL_ECHOLNPAIR_F_P(SP_Z_STR, LINEAR_UNIT(mbl.z_values[px][py]), 5);
             }
           }
+          CONFIG_ECHO_START();
+          SERIAL_ECHOLNPAIR_F_P(PSTR("  G29 S4 Z"), LINEAR_UNIT(mbl.z_offset), 5);
         }
 
       #elif ENABLED(AUTO_BED_LEVELING_UBL)
@@ -3124,33 +3131,31 @@ void MarlinSettings::reset() {
 
       #if AXIS_IS_TMC(X) || AXIS_IS_TMC(Y) || AXIS_IS_TMC(Z)
         say_M906(forReplay);
-        SERIAL_ECHOLNPAIR_P(
-          #if AXIS_IS_TMC(X)
-            SP_X_STR, stepperX.getMilliamps(),
-          #endif
-          #if AXIS_IS_TMC(Y)
-            SP_Y_STR, stepperY.getMilliamps(),
-          #endif
-          #if AXIS_IS_TMC(Z)
-            SP_Z_STR, stepperZ.getMilliamps()
-          #endif
-        );
+        #if AXIS_IS_TMC(X)
+          SERIAL_ECHOPAIR_P(SP_X_STR, stepperX.getMilliamps());
+        #endif
+        #if AXIS_IS_TMC(Y)
+          SERIAL_ECHOPAIR_P(SP_Y_STR, stepperY.getMilliamps());
+        #endif
+        #if AXIS_IS_TMC(Z)
+          SERIAL_ECHOPAIR_P(SP_Z_STR, stepperZ.getMilliamps());
+        #endif
+        SERIAL_EOL();
       #endif
 
       #if AXIS_IS_TMC(X2) || AXIS_IS_TMC(Y2) || AXIS_IS_TMC(Z2)
         say_M906(forReplay);
         SERIAL_ECHOPGM(" I1");
-        SERIAL_ECHOLNPAIR_P(
-          #if AXIS_IS_TMC(X2)
-            SP_X_STR, stepperX2.getMilliamps(),
-          #endif
-          #if AXIS_IS_TMC(Y2)
-            SP_Y_STR, stepperY2.getMilliamps(),
-          #endif
-          #if AXIS_IS_TMC(Z2)
-            SP_Z_STR, stepperZ2.getMilliamps()
-          #endif
-        );
+        #if AXIS_IS_TMC(X2)
+          SERIAL_ECHOPAIR_P(SP_X_STR, stepperX2.getMilliamps());
+        #endif
+        #if AXIS_IS_TMC(Y2)
+          SERIAL_ECHOPAIR_P(SP_Y_STR, stepperY2.getMilliamps());
+        #endif
+        #if AXIS_IS_TMC(Z2)
+          SERIAL_ECHOPAIR_P(SP_Z_STR, stepperZ2.getMilliamps());
+        #endif
+        SERIAL_EOL();
       #endif
 
       #if AXIS_IS_TMC(Z3)
@@ -3321,9 +3326,9 @@ void MarlinSettings::reset() {
 
         if (chop_x || chop_y || chop_z) {
           say_M569(forReplay);
-          if (chop_x) SERIAL_ECHOPGM_P(SP_X_STR);
-          if (chop_y) SERIAL_ECHOPGM_P(SP_Y_STR);
-          if (chop_z) SERIAL_ECHOPGM_P(SP_Z_STR);
+          if (chop_x) SERIAL_ECHO_P(SP_X_STR);
+          if (chop_y) SERIAL_ECHO_P(SP_Y_STR);
+          if (chop_z) SERIAL_ECHO_P(SP_Z_STR);
           SERIAL_EOL();
         }
 
@@ -3345,9 +3350,9 @@ void MarlinSettings::reset() {
 
         if (chop_x2 || chop_y2 || chop_z2) {
           say_M569(forReplay, PSTR("I1"));
-          if (chop_x2) SERIAL_ECHOPGM_P(SP_X_STR);
-          if (chop_y2) SERIAL_ECHOPGM_P(SP_Y_STR);
-          if (chop_z2) SERIAL_ECHOPGM_P(SP_Z_STR);
+          if (chop_x2) SERIAL_ECHO_P(SP_X_STR);
+          if (chop_y2) SERIAL_ECHO_P(SP_Y_STR);
+          if (chop_z2) SERIAL_ECHO_P(SP_Z_STR);
           SERIAL_EOL();
         }
 
